@@ -12,7 +12,6 @@ from collections import OrderedDict, defaultdict
 from aiohttp import ClientSession
 from tkinter import Tk, Label, Button
 from openpyxl import Workbook
-# from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -56,7 +55,7 @@ def adjust_width(sheet: Worksheet) -> None:
     for i, row in enumerate(sheet):
         for j, cell in enumerate(row):
             column_widths[j] = max(column_widths[j], len(max(cell.value.split('\n'))))
-            row_heights[i] = max(row_heights[i], len(max(cell.value.split('\n'))))
+            row_heights[i] = 10 #max(row_heights[i], len(max(cell.value.split('\n'))))
 
     for col_num, column in enumerate(sheet.columns):
         sheet.column_dimensions[get_column_letter(col_num+1)].width = column_widths[col_num]
@@ -97,7 +96,7 @@ def convert_csv_to_excel(csv_file_name: Path) -> None:
 
     CSV_SEPARATOR = ";"
 
-    with open(csv_file_name) as f:
+    with open(csv_file_name, encoding='utf-8') as f:
         reader = csv.reader(f, delimiter=CSV_SEPARATOR)
         for r, row in enumerate(reader):
             for idx, val in enumerate(row):
@@ -108,16 +107,17 @@ def convert_csv_to_excel(csv_file_name: Path) -> None:
 
     adjust_width(sheet)
     wb.save(csv_file_name.stem + '.xlsx')
-    csv_file_name.unlink()
+    wb.save('data.xlsx')
+    # csv_file_name.unlink()
 
 
 def save_entities_data(data: List[OrderedDict], csv_file_name: Path) -> None:
     header = get_header()
-    with open(csv_file_name, "w") as file:
+    with open(csv_file_name, "w", encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerow([v for k, v in header.items()])
 
-    with open(csv_file_name, "a") as file:
+    with open(csv_file_name, "a", encoding='utf-8') as file:
         dict_writer = csv.DictWriter(file, header, delimiter=';')
         dict_writer.writerows(data)
 
@@ -127,8 +127,8 @@ async def parse_entities(session: ClientSession, entity: Dict[str, str]) -> Orde
     response = await session.get(get_entity_url, params={'id': entity['id']})
     raw_data = await response.text()
     entity_data = json.loads(raw_data)
-    with open("entity.json", "w") as file:
-        file.write(raw_data)
+    # with open("entity.json", "w") as file:
+    #     file.write(raw_data)
 
     return filter_fields(entity_data)
 
@@ -177,7 +177,7 @@ async def run_parsing(label: Label):
             total_entities = len(entites)
 
             entities_info = []
-            csv_file_name = Path(datetime.now().strftime("%Y.%m.%d-%H:%M.csv"))
+            csv_file_name = Path(datetime.now().strftime("%Y.%m.%d-%H.%M.csv"))
 
             # TODO: отдебажить, убрать
             # convert_csv_to_excel(Path("2018.07.19-02:05.csv"))
@@ -187,9 +187,9 @@ async def run_parsing(label: Label):
                 entities_info.append(await parse_entities(session, entity))
                 label.config(text=f"{counter+1}/{total_entities}")
                 save_entities_data(entities_info, csv_file_name)
+                # convert_csv_to_excel(csv_file_name)
 
             print('')
-            convert_csv_to_excel(csv_file_name)
             label.config(text=f"Завершено")
     exit()
 
