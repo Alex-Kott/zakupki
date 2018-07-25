@@ -1,6 +1,6 @@
 import asyncio
 import re
-from asyncio import BaseEventLoop
+from asyncio import AbstractEventLoop
 import csv
 import json
 import threading
@@ -49,19 +49,19 @@ def get_header() -> OrderedDict:
     return header
 
 
-def adjust_width(sheet: Worksheet) -> None:
+def adjust_size(sheet: Worksheet) -> None:
     column_widths = defaultdict(int)
     row_heights = defaultdict(int)
     for i, row in enumerate(sheet):
         for j, cell in enumerate(row):
             column_widths[j] = max(column_widths[j], len(max(cell.value.split('\n'))))
-            row_heights[i] = 10 #max(row_heights[i], len(max(cell.value.split('\n'))))
+            row_heights[i] = max(row_heights[i], cell.value.count('\n'))
 
     for col_num, column in enumerate(sheet.columns):
         sheet.column_dimensions[get_column_letter(col_num+1)].width = column_widths[col_num]
 
     for row_num, row in enumerate(sheet.rows):
-        sheet.row_dimensions[row_num+1].height = 35 #row_heights[row_num]
+        sheet.row_dimensions[row_num+1].height = 25 # row_heights[row_num]
 
 
 def is_link(value: str) -> bool:
@@ -90,34 +90,35 @@ def preprocess_values(value: str) -> str:
     return ' '.join(transformed_value)
 
 
-def convert_csv_to_excel(csv_file_name: Path) -> None:
+def convert_csv_to_excel(csv_file_name: Path, encoding='utf-8') -> None:
     wb = Workbook()
     sheet = wb.active
 
     CSV_SEPARATOR = ";"
 
-    with open(csv_file_name, encoding='utf-8') as f:
+    with open(csv_file_name, encoding=encoding) as f:
         reader = csv.reader(f, delimiter=CSV_SEPARATOR)
         for r, row in enumerate(reader):
             for idx, val in enumerate(row):
                 cell = sheet.cell(row=r + 1, column=idx + 1)
                 # TODO: сделать удобное отображение ссылок
-                # val = preprocess_values(val)
+                # preprocess_values(val)
                 cell.value = val
 
-    adjust_width(sheet)
+    adjust_size(sheet)
     wb.save(csv_file_name.stem + '.xlsx')
-    wb.save('data.xlsx')
-    # csv_file_name.unlink()
+    # wb.save('data.xlsx')
 
 
-def save_entities_data(data: List[OrderedDict], csv_file_name: Path) -> None:
+def save_entities_data(data: List[OrderedDict],
+                       csv_file_name: Path,
+                       encoding="windows-1251") -> None:
     header = get_header()
-    with open(csv_file_name, "w", encoding='utf-8') as file:
+    with open(csv_file_name, "w", encoding=encoding, newline='') as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerow([v for k, v in header.items()])
 
-    with open(csv_file_name, "a", encoding='utf-8') as file:
+    with open(csv_file_name, "a", encoding=encoding, newline='') as file:
         dict_writer = csv.DictWriter(file, header, delimiter=';')
         dict_writer.writerows(data)
 
@@ -165,11 +166,11 @@ async def run_parsing(label: Label):
 
             raw_response = await get_all_entities(session)
             data = json.loads(raw_response)
-            #
-            # with open('response.json', 'w') as file:
-            #     file.write(raw_response)
 
-            # with open('response.json') as file:
+            # with open('response.json', 'w', encoding="utf-8") as file:
+            #     file.write(raw_response)
+            #
+            # with open('response.json', encoding='utf-8') as file:
             #     data = json.loads(file.read())
 
             """получаем активные котировки"""
@@ -179,33 +180,32 @@ async def run_parsing(label: Label):
             entities_info = []
             csv_file_name = Path(datetime.now().strftime("%Y.%m.%d-%H.%M.csv"))
 
-            # TODO: отдебажить, убрать
-            # convert_csv_to_excel(Path("2018.07.19-02:05.csv"))
-
             for counter, entity in enumerate(entites):
                 print(f"{counter+1}/{total_entities}", end='\r', flush=True, sep='')
                 entities_info.append(await parse_entities(session, entity))
                 label.config(text=f"{counter+1}/{total_entities}")
                 save_entities_data(entities_info, csv_file_name)
-                # convert_csv_to_excel(csv_file_name)
+                convert_csv_to_excel(csv_file_name, encoding='windows-1251')
 
+            csv_file_name.unlink()
             print('')
             label.config(text=f"Завершено")
     exit()
 
 
-def _asyncio_thread(async_loop: BaseEventLoop, label) -> None:
+def _asyncio_thread(async_loop: AbstractEventLoop, label) -> None:
     async_loop.run_until_complete(run_parsing(label))
     async_loop.close()
 
 
-def run_in_thread(event_loop: BaseEventLoop, label) -> None:
+def run_in_thread(event_loop: AbstractEventLoop, label) -> None:
     label.config(text="Выполняется парсинг...")
     threading.Thread(target=_asyncio_thread, args=(event_loop, label)).start()
 
 
 def start_application() -> None:
     root = Tk()
+    root.title("Парсер сайта zakupki.mos.ru")
 
     label = Label(root, width=20, height=10)
     label.grid(row=0, column=0)
@@ -218,4 +218,7 @@ def start_application() -> None:
 
 
 if __name__ == "__main__":
+    # TODO: отдебажить, убрать
+    # convert_csv_to_excel(Path("2018.07.25-00.10.csv"), encoding="windows-1251")
+    # exit()
     start_application()

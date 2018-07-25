@@ -9,6 +9,7 @@ missing module named multiprocessing.SimpleQueue - imported by multiprocessing, 
 missing module named resource - imported by posix, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named posix - imported by os, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named _posixsubprocess - imported by subprocess, multiprocessing.util, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
+missing module named org - imported by pickle, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named readline - imported by cmd, code, pdb, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 excluded module named _frozen_importlib - imported by importlib, importlib.abc, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named _frozen_importlib_external - imported by importlib._bootstrap, importlib, importlib.abc, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
@@ -19,10 +20,9 @@ missing module named 'java.lang' - imported by platform, C:\Users\alexkott\Docum
 missing module named vms_lib - imported by platform, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named termios - imported by tty, getpass, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named grp - imported by shutil, tarfile, pathlib, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
-missing module named _dummy_threading - imported by dummy_threading, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
-missing module named org - imported by copy, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named pwd - imported by posixpath, shutil, tarfile, http.server, webbrowser, pathlib, netrc, getpass, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
-missing module named 'org.python' - imported by pickle, C:\Users\alexkott\Documents\YouDo\zakupki\main.py, xml.sax
+missing module named 'org.python' - imported by copy, C:\Users\alexkott\Documents\YouDo\zakupki\main.py, xml.sax
+missing module named _dummy_threading - imported by dummy_threading, C:\Users\alexkott\Documents\YouDo\zakupki\main.py
 missing module named PIL - imported by openpyxl.drawing.image
 missing module named Image - imported by openpyxl.drawing.image
 missing module named pandas - imported by openpyxl.compat.numbers
