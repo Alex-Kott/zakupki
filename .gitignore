@@ -4,3 +4,4 @@ venv/
 *.json
 *.csv
 *.xlsx
+build/
