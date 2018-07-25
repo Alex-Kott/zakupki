@@ -6,7 +6,7 @@ import json
 import threading
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from collections import OrderedDict, defaultdict
 
 from aiohttp import ClientSession
@@ -14,6 +14,7 @@ from tkinter import Tk, Label, Button
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
+from openpyxl.worksheet.hyperlink import Hyperlink
 
 
 def filter_fields(entity) -> OrderedDict:
@@ -54,8 +55,11 @@ def adjust_size(sheet: Worksheet) -> None:
     row_heights = defaultdict(int)
     for i, row in enumerate(sheet):
         for j, cell in enumerate(row):
-            column_widths[j] = max(column_widths[j], len(max(cell.value.split('\n'))))
-            row_heights[i] = max(row_heights[i], cell.value.count('\n'))
+            try:
+                column_widths[j] = max(column_widths[j], len(max(cell.value.split('\n'))))
+                row_heights[i] = max(row_heights[i], cell.value.count('\n'))
+            except:
+                pass
 
     for col_num, column in enumerate(sheet.columns):
         sheet.column_dimensions[get_column_letter(col_num+1)].width = column_widths[col_num]
@@ -78,16 +82,16 @@ def convert_to_hyperlink(value: str):
     return ' '.join(result)
 
 
-def preprocess_values(value: str) -> str:
+def extract_links(value: str) -> Tuple[str, List[Hyperlink]]:
     """Преобразуем ссылки с HYPERLINK если они имеются"""
-    transformed_value = []
+    hyperlink_list = []
+    count = 0
     for word in value.split(' '):
         if is_link(word):
-            transformed_value.append(convert_to_hyperlink(word))
-        else:
-            transformed_value.append(word)
+            hyperlink = Hyperlink(ref=f"Файл {count+1}", location=word)
+            hyperlink_list.append(hyperlink)
 
-    return ' '.join(transformed_value)
+    return value, hyperlink_list
 
 
 def convert_csv_to_excel(csv_file_name: Path, encoding='utf-8') -> None:
@@ -102,12 +106,17 @@ def convert_csv_to_excel(csv_file_name: Path, encoding='utf-8') -> None:
             for idx, val in enumerate(row):
                 cell = sheet.cell(row=r + 1, column=idx + 1)
                 # TODO: сделать удобное отображение ссылок
-                # preprocess_values(val)
+                val, links = extract_links(val)
                 cell.value = val
+
+                for link in links:
+                    cell.value = link.ref
+                    cell.hyperlink = link.location
+                    # TODO тут творится какая-то дичь. Разобраться.
+                    cell = sheet.cell(row=cell.row+1, column=idx+1)
 
     adjust_size(sheet)
     wb.save(csv_file_name.stem + '.xlsx')
-    # wb.save('data.xlsx')
 
 
 def save_entities_data(data: List[OrderedDict],
@@ -218,7 +227,4 @@ def start_application() -> None:
 
 
 if __name__ == "__main__":
-    # TODO: отдебажить, убрать
-    # convert_csv_to_excel(Path("2018.07.25-00.10.csv"), encoding="windows-1251")
-    # exit()
     start_application()
