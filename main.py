@@ -86,10 +86,11 @@ def extract_links(value: str) -> Tuple[str, List[Hyperlink]]:
     """Преобразуем ссылки с HYPERLINK если они имеются"""
     hyperlink_list = []
     count = 0
-    for word in value.split(' '):
-        if is_link(word):
+    for word in value.split('\n'):
+        if is_link(word.strip()):
             hyperlink = Hyperlink(ref=f"Файл {count+1}", location=word)
             hyperlink_list.append(hyperlink)
+            count += 1
 
     return value, hyperlink_list
 
@@ -112,8 +113,9 @@ def convert_csv_to_excel(csv_file_name: Path, encoding='utf-8') -> None:
                 for link in links:
                     cell.value = link.ref
                     cell.hyperlink = link.location
+                    idx += 1
                     # TODO тут творится какая-то дичь. Разобраться.
-                    cell = sheet.cell(row=cell.row+1, column=idx+1)
+                    cell = sheet.cell(row=cell.row, column=idx+1)
 
     adjust_size(sheet)
     wb.save(csv_file_name.stem + '.xlsx')
