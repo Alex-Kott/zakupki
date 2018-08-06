@@ -4,9 +4,11 @@ from typing import Dict
 
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
+import pandas as pd
 
 
 async def parse_procurement(session: ClientSession, item: Dict[str, str]):
+    print(item['Id'])
     headers = {
         "XXX-TenantId-Header": "2"
     }
@@ -18,7 +20,14 @@ async def parse_procurement(session: ClientSession, item: Dict[str, str]):
     async with session.get(f"https://market.mosreg.ru/Trade/ViewTrade", params={'id': item['Id']}) as response:
         raw_response = await  response.text()
         soup = BeautifulSoup(raw_response, "lxml")
-        
+
+        dfs = pd.read_html(raw_response)
+
+        record = {}
+
+        for df in dfs:
+            
+            print(df, end='\n_________________________________________________________________')
 
 
 
