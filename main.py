@@ -3,9 +3,10 @@ import re
 from asyncio import AbstractEventLoop
 import csv
 import json
+from json import JSONDecodeError
 import threading
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 from typing import Dict, List, Tuple
 from collections import OrderedDict, defaultdict
 
@@ -17,6 +18,36 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.worksheet.hyperlink import Hyperlink
 
 
+parsed_items_file_name = 'parsed_items.json'
+
+
+def is_parsed_today(item_id: int) -> bool:
+    with open(parsed_items_file_name) as file:
+        parsed_item_ids = json.loads(file.read())
+        if item_id in parsed_item_ids:
+            return True
+        return False
+
+
+def save_parsed_item_id(item_ids: List[int] = None, item_id: int = None) -> None:
+    try:
+        with open(parsed_items_file_name) as file:
+            try:
+                parsed_items = json.loads(file.read())
+            except JSONDecodeError:
+                parsed_items = []
+    except FileNotFoundError:
+        parsed_items = []
+
+    if item_id:
+        parsed_items.append(item_id)
+    else:
+        parsed_items.extend(item_ids)
+
+    with open(parsed_items_file_name, 'w') as file:
+        json.dump(parsed_items, parsed_items)
+
+
 def filter_fields(entity) -> OrderedDict:
     files = []
     file_download_url = "http://zakupki.mos.ru/api/Core/FileStorage/GetDownload"
@@ -26,6 +57,7 @@ def filter_fields(entity) -> OrderedDict:
     row = OrderedDict([
         ('customer', entity['company']['name']),
         ('endDate', entity['endDate']),
+        ('parsed', is_parsed_today(entity['id'])),
         ('companyCustomerRegionName', entity['companyCustomerRegionName']),
         ('name', entity['name']),
         ('startCost', entity['startCost']),
@@ -40,6 +72,7 @@ def get_header() -> OrderedDict:
     header = OrderedDict([
         ('customer', "Заказчик"),
         ('endDate', "Дата окончания"),
+        ('parsed', "Уже спарсили"),
         ('companyCustomerRegionName', "Регион"),
         ('name', "Название"),
         ('startCost', "Начальная стоиомость"),
@@ -141,6 +174,8 @@ async def parse_entities(session: ClientSession, entity: Dict[str, str]) -> Orde
     entity_data = json.loads(raw_data)
     # with open("entity.json", "w") as file:
     #     file.write(raw_data)
+
+    save_parsed_item_id(item_id=entity['id'])
 
     return filter_fields(entity_data)
 
