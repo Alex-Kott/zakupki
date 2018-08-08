@@ -18,34 +18,34 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.worksheet.hyperlink import Hyperlink
 
 
-parsed_items_file_name = 'parsed_items.json'
+settings_file_name = 'settings.json'
 
 
-def is_parsed_today(item_id: int) -> bool:
-    with open(parsed_items_file_name) as file:
-        parsed_item_ids = json.loads(file.read())
-        if item_id in parsed_item_ids:
-            return True
-        return False
+def is_parsed_today(item_id: int) -> str:
+    with open(settings_file_name) as file:
+        settings = json.loads(file.read())
+        if item_id in settings['parsed_items']:
+            return "Да"
+        return "Нет"
 
 
 def save_parsed_item_id(item_ids: List[int] = None, item_id: int = None) -> None:
     try:
-        with open(parsed_items_file_name) as file:
+        with open(settings_file_name) as file:
             try:
-                parsed_items = json.loads(file.read())
+                settings = json.loads(file.read())
             except JSONDecodeError:
-                parsed_items = []
+                settings = defaultdict(list)
     except FileNotFoundError:
-        parsed_items = []
+        settings = defaultdict(list)
 
     if item_id:
-        parsed_items.append(item_id)
+        settings['parsed_items'].append(item_id)
     else:
-        parsed_items.extend(item_ids)
+        settings['parsed_items'].extend(item_ids)
 
-    with open(parsed_items_file_name, 'w') as file:
-        json.dump(parsed_items, parsed_items)
+    with open(settings_file_name, 'w') as file:
+        json.dump(settings, file)
 
 
 def filter_fields(entity) -> OrderedDict:
@@ -175,8 +175,6 @@ async def parse_entities(session: ClientSession, entity: Dict[str, str]) -> Orde
     # with open("entity.json", "w") as file:
     #     file.write(raw_data)
 
-    save_parsed_item_id(item_id=entity['id'])
-
     return filter_fields(entity_data)
 
 
@@ -224,6 +222,7 @@ async def run_parsing(label: Label):
             total_entities = len(entites)
 
             entities_info = []
+            parsed_ids = []
             csv_file_name = Path(datetime.now().strftime("%Y.%m.%d-%H.%M.csv"))
 
             for counter, entity in enumerate(entites):
@@ -232,6 +231,9 @@ async def run_parsing(label: Label):
                 label.config(text=f"{counter+1}/{total_entities}")
                 save_entities_data(entities_info, csv_file_name)
                 convert_csv_to_excel(csv_file_name, encoding='windows-1251')
+
+                parsed_ids.append(entity['id'])
+            save_parsed_item_id(item_ids=parsed_ids)
 
             csv_file_name.unlink()
             print('')
