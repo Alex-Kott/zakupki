@@ -3,12 +3,30 @@ import json
 from typing import Dict
 
 from aiohttp import ClientSession
+import attr
 from bs4 import BeautifulSoup
 import pandas as pd
+from pandas import DataFrame
+
+
+class Customer:
+    full_name: str
+    inn: int
+    address: str
+
+    def __init__(self, df: DataFrame):
+        self.full_name = df.loc[df[0] == 'Полное наименование'][1].item()
+        self.inn = df.loc[df[0] == 'ИНН'][1].item()
+        self.address = df.loc[df[0] == 'Адрес места нахождения'][1].item()
+
+
+class Procurement:
+    customer: Customer
+    info: Dict
 
 
 async def parse_procurement(session: ClientSession, item: Dict[str, str]):
-    print(item['Id'])
+    # print(item['Id'])
     headers = {
         "XXX-TenantId-Header": "2"
     }
@@ -18,16 +36,17 @@ async def parse_procurement(session: ClientSession, item: Dict[str, str]):
         file_links = [item["Url"] for item in data]
 
     async with session.get(f"https://market.mosreg.ru/Trade/ViewTrade", params={'id': item['Id']}) as response:
-        raw_response = await  response.text()
+        raw_response = await response.text()
         soup = BeautifulSoup(raw_response, "lxml")
 
         dfs = pd.read_html(raw_response)
 
         record = {}
 
+        df = dfs[2]
+
         for df in dfs:
-            
-            print(df, end='\n_________________________________________________________________')
+            print(df[0], end='\n_________________________________________________________________\n')
 
 
 
@@ -35,7 +54,7 @@ async def parse_procurement(session: ClientSession, item: Dict[str, str]):
 async def main():
     get_trades_url = "https://api.market.mosreg.ru/api/Trade/GetTradesForParticipantOrAnonymous"
     payload = {"page": 1,
-               "itemsPerPage": 1,
+               "itemsPerPage": 1000,
                "tradeState": "15",
                "OnlyTradesWithMyApplications": False,
                "sortingParams": [],
@@ -81,14 +100,6 @@ async def main():
             procurement_list = data['invdata']
 
             procurements = [await parse_procurement(session, item) for item in procurement_list]
-
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
